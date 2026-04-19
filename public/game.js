@@ -1,85 +1,165 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>CURSED PHONE</title>
-    <style>
-        * { font-family: "Comic Sans MS", cursive !important; box-sizing: border-box; transition: transform 0.5s; }
-        body { background: #2b0031; color: #00ffcc; display: flex; height: 100vh; margin: 0; overflow: hidden; }
-        
-        .event-flip { transform: rotate(180deg); }
-        .event-invert { filter: invert(1); }
-        .event-shake { animation: shake 0.5s infinite; }
-        @keyframes shake { 0% { margin-left: 0; } 25% { margin-left: 10px; } 50% { margin-left: -10px; } 100% { margin-left: 0; } }
+const socket = io();
+let roomCode = "", myName = "", currentMode = "text", timerInterval, appleGoal = 10;
+let brushColor = "black";
 
-        #sidebar { width: 280px; background: #000; border-left: 5px solid #ff00ff; padding: 15px; text-align: center; }
-        #game-container { flex: 1; display: flex; align-items: center; justify-content: center; }
-        .card { background: #1a1a1a; padding: 25px; border: 5px solid #ff00ff; border-radius: 20px; box-shadow: 10px 10px 0px #00ffcc; width: 480px; text-align: center; }
-        
-        canvas#drawCanvas { background: white; border: 3px solid #00ffcc; cursor: crosshair; margin: 10px auto; display: block; touch-action: none; }
-        .palette { display: flex; justify-content: center; gap: 5px; margin-bottom: 10px; }
-        .swatch { width: 25px; height: 25px; border: 2px solid white; cursor: pointer; border-radius: 50%; }
+function setColor(c) { brushColor = c; }
 
-        .hidden { display: none !important; }
-        input { width: 100%; padding: 10px; margin: 10px 0; border: 2px solid #ff00ff; background: #000; color: #00ffcc; }
-        button { background: #ff00ff; color: white; border: none; padding: 12px; cursor: pointer; font-weight: bold; width: 100%; }
-        #timer { font-size: 48px; color: #ffff00; }
-        #snakeCanvas { background: #111; border: 2px solid #fff; margin: 10px 0; }
-        #error-msg { color: #ff0000; font-weight: bold; margin-top: 10px; }
-    </style>
-</head>
-<body id="main-body">
-    <div id="game-container">
-        <div id="join-screen" class="card">
-            <h1>CURSED PHONE</h1>
-            <input type="text" id="nameInput" placeholder="YOUR NAME">
-            <input type="text" id="codeInput" placeholder="ROOM CODE">
-            <button onclick="join()">JOIN / HOST</button>
-        </div>
+socket.on('error_msg', (msg) => { document.getElementById('error-msg').innerText = msg; });
 
-        <div id="lobby-screen" class="card hidden">
-            <h1>LOBBY: <span id="room-display"></span></h1>
-            <ul id="player-list" style="list-style:none; padding:0;"></ul>
-            <button onclick="start()">START (MIN 3)</button>
-            <div id="error-msg"></div>
-        </div>
+socket.on('random_event', (type) => {
+    const body = document.getElementById('main-body');
+    body.classList.remove('event-flip', 'event-invert', 'event-shake');
+    if (type === "FLIP") body.classList.add('event-flip');
+    if (type === "INVERT") body.classList.add('event-invert');
+    if (type === "SHAKE") body.classList.add('event-shake');
+    document.getElementById('event-ticker').innerText = "EVENT: " + type;
+    setTimeout(() => {
+        body.classList.remove('event-flip', 'event-invert', 'event-shake');
+        document.getElementById('event-ticker').innerText = "Status: Stable";
+    }, 5000);
+});
 
-        <div id="game-screen" class="card hidden">
-            <div id="timer">60</div>
-            <p id="instruction" style="font-size: 1.2em;"></p>
-            <div id="prev-content" style="background: #333; padding: 10px; border-radius: 10px; margin-bottom: 10px;"></div>
-            
-            <div id="draw-tools" class="hidden">
-                <div class="palette">
-                    <div class="swatch" style="background: black;" onclick="setColor('black')"></div>
-                    <div class="swatch" style="background: red;" onclick="setColor('red')"></div>
-                    <div class="swatch" style="background: blue;" onclick="setColor('blue')"></div>
-                    <div class="swatch" style="background: green;" onclick="setColor('green')"></div>
-                    <div class="swatch" style="background: yellow;" onclick="setColor('yellow')"></div>
-                    <div class="swatch" style="background: white; border: 1px solid #999;" onclick="setColor('white')"></div>
-                </div>
-                <canvas id="drawCanvas" width="350" height="350"></canvas>
-            </div>
+function join() {
+    roomCode = document.getElementById('codeInput').value.toUpperCase();
+    myName = document.getElementById('nameInput').value;
+    if (roomCode && myName) socket.emit('join_room', { code: roomCode, name: myName });
+    document.getElementById('join-screen').classList.add('hidden');
+    document.getElementById('lobby-screen').classList.remove('hidden');
+    document.getElementById('room-display').innerText = roomCode;
+}
 
-            <input type="text" id="textInput" placeholder="Describe the horror...">
-            <button id="submitBtn" onclick="submit()">SUBMIT TURN</button>
-        </div>
+function start() { socket.emit('start_game', roomCode); }
 
-        <div id="results-screen" class="card hidden" style="overflow-y: auto; max-height: 90vh; width: 600px;">
-            <h1>CURSED REVEAL</h1>
-            <div id="results-content"></div>
-            <button onclick="location.reload()">RE-CURSE</button>
-        </div>
-    </div>
+socket.on('update_players', (list) => {
+    document.getElementById('player-list').innerHTML = list.map(p => `<li>💀 ${p}</li>`).join('');
+});
 
-    <div id="sidebar">
-        <h3 style="color: #ff00ff;">SNAKE TO SKIP</h3>
-        <canvas id="snakeCanvas" width="200" height="200"></canvas>
-        <p>Apples: <span id="apples">0</span> / <span id="goal">10</span></p>
-        <button id="skipBtn" disabled onclick="skip()" style="background: red;">SKIP ROUND</button>
-        <p id="event-ticker" style="color: yellow; font-size: 12px; margin-top: 10px;">Status: Stable</p>
-    </div>
+socket.on('game_started', () => {
+    document.getElementById('lobby-screen').classList.add('hidden');
+    document.getElementById('game-screen').classList.remove('hidden');
+    setupRound("WRITE A CURSED STARTING PROMPT", null, "text", 60);
+});
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="game.js"></script>
-</body>
-</html>
+socket.on('next_round', (data) => {
+    appleGoal = data.appleReq;
+    document.getElementById('goal').innerText = appleGoal;
+    // If last was text, now draw. If last was image, now describe.
+    const mode = data.lastEntry.type === 'text' ? 'image' : 'text';
+    const instr = mode === 'image' ? "DRAW THIS:" : "DESCRIBE THIS DRAWING:";
+    setupRound(instr, data.lastEntry, mode, data.time);
+});
+
+function setupRound(title, lastEntry, mode, time) {
+    currentMode = mode;
+    clearInterval(timerInterval);
+    document.getElementById('game-screen').classList.remove('hidden');
+    document.getElementById('instruction').innerText = title;
+    
+    let timeLeft = time;
+    document.getElementById('submitBtn').disabled = (timeLeft > 1000);
+    document.getElementById('timer').innerText = timeLeft;
+    timerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timer').innerText = timeLeft;
+        if (timeLeft <= 0) { clearInterval(timerInterval); submit(); }
+    }, 1000);
+
+    const drawTools = document.getElementById('draw-tools');
+    const input = document.getElementById('textInput');
+    const prev = document.getElementById('prev-content');
+    ctx.clearRect(0,0,350,350);
+
+    if (mode === 'image') {
+        drawTools.classList.remove('hidden');
+        input.classList.add('hidden');
+        prev.innerText = lastEntry ? lastEntry.content : "Starting Round";
+    } else {
+        drawTools.classList.add('hidden');
+        input.classList.remove('hidden');
+        input.value = "";
+        prev.innerHTML = lastEntry ? `<img src="${lastEntry.content}" width="200">` : "Error";
+    }
+}
+
+function submit() {
+    const content = currentMode === 'text' ? document.getElementById('textInput').value : canvas.toDataURL();
+    socket.emit('submit_turn', { code: roomCode, content, type: currentMode, isSkip: false });
+    document.getElementById('game-screen').classList.add('hidden');
+}
+
+// --- DRAWING LOGIC ---
+const canvas = document.getElementById('drawCanvas');
+const ctx = canvas.getContext('2d');
+let drawing = false, lastX = 0, lastY = 0;
+canvas.onmousedown = (e) => { drawing = true; [lastX, lastY] = [e.offsetX, e.offsetY]; };
+canvas.onmousemove = (e) => {
+    if (!drawing) return;
+    ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.strokeStyle = brushColor;
+    ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke();
+    [lastX, lastY] = [e.offsetX, e.offsetY];
+};
+window.onmouseup = () => drawing = false;
+
+// --- DEADLY/SHY SNAKE ---
+const sCanvas = document.getElementById('snakeCanvas'), sCtx = sCanvas.getContext('2d');
+let snake = [{x: 10, y: 10}], food = {x: 5, y: 5}, dx = 0, dy = 0, apples = 0;
+
+window.onkeydown = (e) => {
+    if (e.key === "ArrowUp" && dy === 0) { dx = 0; dy = -1; }
+    if (e.key === "ArrowDown" && dy === 0) { dx = 0; dy = 1; }
+    if (e.key === "ArrowLeft" && dx === 0) { dx = -1; dy = 0; }
+    if (e.key === "ArrowRight" && dx === 0) { dx = 1; dy = 0; }
+};
+
+function resetSnake() {
+    snake = [{x: 10, y: 10}]; dx = 0; dy = 0; apples = 0;
+    document.getElementById('apples').innerText = 0;
+    document.getElementById('skipBtn').disabled = true;
+}
+
+function runSnake() {
+    if (dx === 0 && dy === 0) return;
+    const head = {x: snake[0].x + dx, y: snake[0].y + dy};
+    if (head.x < 0 || head.x > 19 || head.y < 0 || head.y > 19) return resetSnake();
+    for (let p of snake) if (head.x === p.x && head.y === p.y) return resetSnake();
+
+    // The Shy Apple (0.5% chance to dodge)
+    const dist = Math.abs(head.x - food.x) + Math.abs(head.y - food.y);
+    if (dist <= 2 && Math.random() < 0.005) food = {x: Math.floor(Math.random()*20), y: Math.floor(Math.random()*20)};
+
+    snake.unshift(head);
+    if (head.x === food.x && head.y === food.y) {
+        apples++;
+        document.getElementById('apples').innerText = apples;
+        food = {x: Math.floor(Math.random()*20), y: Math.floor(Math.random()*20)};
+        if (apples >= appleGoal) document.getElementById('skipBtn').disabled = false;
+    } else { snake.pop(); }
+
+    sCtx.fillStyle = "#111"; sCtx.fillRect(0,0,200,200);
+    sCtx.fillStyle = "#00ffcc"; snake.forEach(p => sCtx.fillRect(p.x*10, p.y*10, 9, 9));
+    sCtx.fillStyle = "red"; sCtx.fillRect(food.x*10, food.y*10, 9, 9);
+}
+setInterval(runSnake, 100);
+
+function skip() {
+    socket.emit('submit_turn', { code: roomCode, content: "SNAKE SKIP", type: currentMode, isSkip: true });
+    resetSnake();
+    document.getElementById('game-screen').classList.add('hidden');
+}
+
+// --- FINAL REVEAL ---
+socket.on('show_results', (players) => {
+    document.getElementById('game-screen').classList.add('hidden');
+    document.getElementById('results-screen').classList.remove('hidden');
+    const container = document.getElementById('results-content');
+    players.forEach(p => {
+        let bookHtml = `<div style="border: 2px solid #ff00ff; margin: 10px; padding: 10px; background: #000;">
+                        <h3>${p.name}'s Original Idea</h3>`;
+        p.book.forEach(e => {
+            if(e.type === 'text') bookHtml += `<p style="color:yellow;">${e.author} wrote: "${e.content}"</p>`;
+            else bookHtml += `<p>${e.author} drew:</p><img src="${e.content}" width="300"><br>`;
+        });
+        bookHtml += `</div>`;
+        container.innerHTML += bookHtml;
+    });
+});
