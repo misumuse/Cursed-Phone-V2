@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CURSED PHONE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Bangers&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d0015;
+            --card-bg: #160020;
+            --neon-pink: #ff00ff;
+            --neon-cyan: #00ffcc;
+            --neon-yellow: #ffff00;
+            --neon-orange: #ff6600;
+            --neon-green: #39ff14;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: "Bangers", "Comic Sans MS", cursive;
+            background: var(--bg);
+            color: var(--neon-cyan);
+            display: flex;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            background-image: 
+                radial-gradient(ellipse at 20% 50%, rgba(255,0,255,0.08) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 50%, rgba(0,255,204,0.05) 0%, transparent 60%);
+        }
+
+        /* CHAOS EVENTS */
+        .event-flip { transform: rotate(180deg); transition: transform 0.5s; }
+        .event-invert { filter: invert(1); }
+        .event-shake { animation: shake 0.4s infinite; }
+        .event-rainbow { animation: rainbowBg 0.5s infinite; }
+        .event-zoom { animation: zoomPulse 0.8s infinite; }
+        .event-glitch { animation: glitch 0.3s infinite; }
+
+        @keyframes shake {
+            0% { transform: translate(0,0); }
+            25% { transform: translate(8px, -4px); }
+            50% { transform: translate(-8px, 4px); }
+            75% { transform: translate(4px, 8px); }
+            100% { transform: translate(0,0); }
+        }
+        @keyframes rainbowBg {
+            0%   { background-color: rgba(255,0,0,0.3); }
+            20%  { background-color: rgba(255,165,0,0.3); }
+            40%  { background-color: rgba(0,255,0,0.3); }
+            60%  { background-color: rgba(0,0,255,0.3); }
+            80%  { background-color: rgba(148,0,211,0.3); }
+            100% { background-color: rgba(255,0,0,0.3); }
+        }
+        @keyframes zoomPulse {
+            0%,100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        @keyframes glitch {
+            0%  { clip-path: inset(0 0 90% 0); transform: translate(-3px); }
+            20% { clip-path: inset(40% 0 40% 0); transform: translate(3px); }
+            40% { clip-path: inset(80% 0 5% 0); transform: translate(-2px); }
+            60% { clip-path: inset(20% 0 60% 0); transform: translate(2px); }
+            80% { clip-path: inset(60% 0 20% 0); transform: translate(-1px); }
+            100% { clip-path: inset(0); transform: translate(0); }
+        }
+
+        /* SIDEBAR */
+        #sidebar {
+            width: 250px;
+            background: #000;
+            border-left: 4px solid var(--neon-pink);
+            padding: 12px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            box-shadow: -4px 0 20px rgba(255,0,255,0.3);
+        }
+        #sidebar h3 { color: var(--neon-pink); margin: 0 0 4px; font-size: 18px; letter-spacing: 2px; }
+        #snakeCanvas { background: #0a0a0a; border: 2px solid #ff00ff; border-radius: 4px; }
+
+        /* MAIN LAYOUT */
+        #game-container { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+
+        /* CARDS */
+        .card {
+            background: var(--card-bg);
+            padding: 22px;
+            border: 4px solid var(--neon-pink);
+            border-radius: 18px;
+            box-shadow: 8px 8px 0px var(--neon-cyan), 0 0 30px rgba(255,0,255,0.3);
+            width: 500px;
+            text-align: center;
+            animation: cardIn 0.4s cubic-bezier(.175,.885,.32,1.275);
+        }
+        @keyframes cardIn {
+            from { transform: scale(0.8) translateY(30px); opacity: 0; }
+            to { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        .card h1 {
+            font-family: "Creepster", cursive;
+            font-size: 2.8em;
+            color: var(--neon-pink);
+            text-shadow: 0 0 20px var(--neon-pink), 0 0 40px var(--neon-pink);
+            margin: 0 0 14px;
+            letter-spacing: 4px;
+            animation: flicker 3s infinite;
+        }
+        @keyframes flicker {
+            0%,96%,100% { opacity: 1; }
+            97% { opacity: 0.5; }
+            98% { opacity: 1; }
+            99% { opacity: 0.7; }
+        }
+
+        .hidden { display: none !important; }
+
+        /* INPUTS */
+        input[type="text"] {
+            width: 100%; padding: 10px 14px; margin: 8px 0;
+            border: 2px solid var(--neon-pink);
+            background: #000; color: var(--neon-cyan);
+            font-family: inherit; font-size: 16px;
+            border-radius: 8px; outline: none;
+            transition: box-shadow 0.2s, border-color 0.2s;
+        }
+        input[type="text"]:focus {
+            box-shadow: 0 0 12px var(--neon-pink);
+            border-color: var(--neon-cyan);
+        }
+
+        /* BUTTONS */
+        button {
+            background: var(--neon-pink);
+            color: #000;
+            border: none; padding: 12px;
+            cursor: pointer; font-weight: bold;
+            font-family: "Bangers", cursive;
+            font-size: 18px; letter-spacing: 2px;
+            width: 100%; border-radius: 8px;
+            transition: transform 0.1s, box-shadow 0.2s;
+            text-transform: uppercase;
+        }
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255,0,255,0.5);
+        }
+        button:active:not(:disabled) { transform: translateY(0); }
+        button:disabled { background: #444; color: #888; cursor: not-allowed; }
+
+        /* TIMER */
+        #timer {
+            font-family: "Creepster", cursive;
+            font-size: 64px;
+            color: var(--neon-yellow);
+            text-shadow: 0 0 15px var(--neon-yellow);
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+        #timer.danger { color: #ff3333; text-shadow: 0 0 20px #ff0000; animation: timerPulse 0.5s infinite; }
+        @keyframes timerPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+        /* INSTRUCTION */
+        #instruction { font-size: 1.3em; color: var(--neon-cyan); margin: 4px 0; letter-spacing: 1px; }
+
+        /* PREV CONTENT */
+        #prev-content {
+            background: #0a0a0a;
+            padding: 10px;
+            border-radius: 10px;
+            border: 2px solid #333;
+            margin-bottom: 10px;
+            min-height: 30px;
+            color: var(--neon-yellow);
+            font-size: 1.1em;
+        }
+
+        /* DRAWING TOOLS */
+        #draw-tools { position: relative; }
+
+        canvas#drawCanvas {
+            background: white;
+            border: 3px solid var(--neon-cyan);
+            cursor: crosshair;
+            margin: 8px auto 0;
+            display: block;
+            touch-action: none;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0,255,204,0.2);
+        }
+
+        /* PALETTE */
+        .palette {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 5px;
+            margin-bottom: 8px;
+        }
+        .swatch {
+            width: 26px; height: 26px;
+            border: 2px solid rgba(255,255,255,0.4);
+            cursor: pointer;
+            border-radius: 50%;
+            transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+            position: relative;
+        }
+        .swatch:hover { transform: scale(1.25); border-color: white; }
+        .swatch.active {
+            transform: scale(1.3);
+            border-color: white;
+            box-shadow: 0 0 8px white;
+        }
+        .swatch.eraser-swatch {
+            background: white !important;
+            border: 2px dashed #999;
+        }
+
+        /* BRUSH SIZE */
+        .brush-sizes {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .brush-btn {
+            width: 34px; height: 34px;
+            background: #111;
+            border: 2px solid #555;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: border-color 0.15s, background 0.15s;
+            padding: 0; /* override default button padding */
+            width: auto; /* override 100% */
+        }
+        .brush-btn:hover, .brush-btn.active { border-color: var(--neon-cyan); background: #222; box-shadow: 0 0 8px var(--neon-cyan); }
+        .brush-dot { background: white; border-radius: 50%; }
+
+        /* DRAW TOOL ROW */
+        .draw-toolbar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+        .tool-btn {
+            background: #111;
+            border: 2px solid #555;
+            color: white;
+            font-family: inherit;
+            font-size: 14px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            cursor: pointer;
+            width: auto;
+            transition: border-color 0.15s, background 0.15s;
+            letter-spacing: 1px;
+        }
+        .tool-btn:hover:not(:disabled), .tool-btn.active {
+            border-color: var(--neon-cyan);
+            background: #1a2a2a;
+            box-shadow: 0 0 8px var(--neon-cyan);
+        }
+
+        /* SOUND TOGGLE */
+        #soundToggle {
+            background: #111;
+            border: 2px solid #555;
+            color: white;
+            font-family: inherit;
+            font-size: 16px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            width: auto;
+            transition: border-color 0.2s;
+        }
+        #soundToggle.on { border-color: var(--neon-green); color: var(--neon-green); }
+        #soundToggle.off { border-color: #555; color: #555; }
+
+        /* SUBMIT ROW */
+        .submit-row { display: flex; gap: 8px; margin-top: 8px; }
+        .submit-row button { font-size: 16px; }
+
+        #error-msg { color: #ff4444; font-weight: bold; margin-top: 8px; font-size: 14px; }
+
+        /* RESULTS */
+        #results-screen {
+            overflow-y: auto;
+            max-height: 92vh;
+            width: 620px;
+        }
+        .result-book {
+            border: 2px solid var(--neon-pink);
+            margin: 10px 0;
+            padding: 12px;
+            background: #0a0a12;
+            border-radius: 10px;
+            text-align: left;
+        }
+        .result-book h3 {
+            color: var(--neon-pink);
+            margin: 0 0 8px;
+            font-family: "Creepster", cursive;
+            font-size: 1.4em;
+        }
+        .result-entry { margin: 6px 0; }
+        .result-entry p { color: var(--neon-yellow); margin: 2px 0; }
+        .result-entry img { border: 2px solid #444; border-radius: 6px; max-width: 280px; }
+
+        /* LOBBY */
+        #player-list { list-style: none; padding: 0; margin: 10px 0; }
+        #player-list li {
+            padding: 6px 10px;
+            margin: 4px 0;
+            background: #0a0010;
+            border: 1px solid #440055;
+            border-radius: 6px;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* SNAKE SCORE */
+        #apples { color: var(--neon-green); font-size: 20px; }
+        #goal { color: #aaa; }
+        #event-ticker {
+            color: var(--neon-yellow);
+            font-size: 12px;
+            letter-spacing: 1px;
+            padding: 4px 8px;
+            background: rgba(255,255,0,0.1);
+            border-radius: 6px;
+        }
+
+        /* TOAST NOTIFICATION */
+        #toast {
+            position: fixed;
+            top: 20px; left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: var(--neon-pink);
+            color: #000;
+            font-family: "Creepster", cursive;
+            font-size: 24px;
+            padding: 12px 28px;
+            border-radius: 12px;
+            z-index: 9999;
+            transition: transform 0.4s cubic-bezier(.175,.885,.32,1.275);
+            letter-spacing: 2px;
+            box-shadow: 0 4px 20px rgba(255,0,255,0.5);
+        }
+        #toast.show { transform: translateX(-50%) translateY(0); }
+
+        /* PARTICLE CANVAS */
+        #particleCanvas {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        /* WAITING SCREEN */
+        #waiting-screen {
+            text-align: center;
+        }
+        .waiting-skull {
+            font-size: 60px;
+            animation: spin 2s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body id="main-body">
+    <canvas id="particleCanvas"></canvas>
+    <div id="toast">!</div>
+
+    <div id="game-container">
+        <!-- JOIN -->
+        <div id="join-screen" class="card">
+            <h1>☠️ CURSED PHONE</h1>
+            <input type="text" id="nameInput" placeholder="YOUR NAME" maxlength="20">
+            <input type="text" id="codeInput" placeholder="ROOM CODE" maxlength="10" style="text-transform:uppercase;">
+            <button onclick="join()" style="margin-top:8px;">☠️ JOIN / HOST ☠️</button>
+        </div>
+
+        <!-- LOBBY -->
+        <div id="lobby-screen" class="card hidden">
+            <h1>LOBBY: <span id="room-display" style="color:var(--neon-cyan)"></span></h1>
+            <ul id="player-list"></ul>
+            <button onclick="start()">🔥 START CURSE (MIN 3)</button>
+            <div id="error-msg"></div>
+        </div>
+
+        <!-- GAME -->
+        <div id="game-screen" class="card hidden" style="width:520px;">
+            <div id="timer">60</div>
+            <p id="instruction"></p>
+            <div id="prev-content"></div>
+
+            <!-- DRAWING TOOLS -->
+            <div id="draw-tools" class="hidden">
+                <!-- PALETTE: 20 colors -->
+                <div class="palette" id="palette"></div>
+                <!-- BRUSH SIZES + TOOLS -->
+                <div class="draw-toolbar">
+                    <span style="color:#aaa;font-size:13px;">SIZE:</span>
+                    <button class="brush-btn active" id="bs-sm" onclick="setBrush(3, 'bs-sm')">
+                        <div class="brush-dot" style="width:6px;height:6px;"></div>
+                    </button>
+                    <button class="brush-btn" id="bs-md" onclick="setBrush(8, 'bs-md')">
+                        <div class="brush-dot" style="width:12px;height:12px;"></div>
+                    </button>
+                    <button class="brush-btn" id="bs-lg" onclick="setBrush(18, 'bs-lg')">
+                        <div class="brush-dot" style="width:20px;height:20px;"></div>
+                    </button>
+                    <button class="brush-btn" id="bs-xl" onclick="setBrush(35, 'bs-xl')">
+                        <div class="brush-dot" style="width:30px;height:30px;"></div>
+                    </button>
+                    <span style="color:#aaa;font-size:13px;margin-left:6px;">MODE:</span>
+                    <button class="tool-btn active" id="tool-pen" onclick="setTool('pen')">✏️ PEN</button>
+                    <button class="tool-btn" id="tool-fill" onclick="setTool('fill')">🪣 FILL</button>
+                    <button class="tool-btn" id="tool-spray" onclick="setTool('spray')">🎨 SPRAY</button>
+                    <button class="tool-btn" id="tool-erase" onclick="setTool('erase')">🧹 ERASE</button>
+                </div>
+                <canvas id="drawCanvas" width="460" height="300"></canvas>
+                <div style="display:flex; gap:6px; margin-top:6px;">
+                    <button class="tool-btn" onclick="undo()" style="flex:1;">↩ UNDO</button>
+                    <button class="tool-btn" onclick="clearCanvas()" style="flex:1;color:#ff4444;border-color:#ff4444;">🗑 CLEAR</button>
+                </div>
+            </div>
+
+            <input type="text" id="textInput" placeholder="Describe the horror..." style="margin-top:8px;">
+
+            <div class="submit-row">
+                <button id="submitBtn" onclick="submit()">💀 SUBMIT TURN</button>
+            </div>
+        </div>
+
+        <!-- WAITING -->
+        <div id="waiting-screen" class="card hidden">
+            <h1>WAITING...</h1>
+            <div class="waiting-skull">💀</div>
+            <p style="color:#aaa; font-size:14px;">Others are still drawing/writing...</p>
+        </div>
+
+        <!-- RESULTS -->
+        <div id="results-screen" class="card hidden" style="overflow-y:auto; max-height:90vh; width:620px;">
+            <h1>💀 CURSED REVEAL 💀</h1>
+            <div id="results-content"></div>
+            <button onclick="location.reload()" style="margin-top:12px;">🔄 RE-CURSE</button>
+        </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div id="sidebar">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3>🐍 SNAKE TO SKIP</h3>
+            <button id="soundToggle" onclick="toggleSound()" class="on" title="Toggle sound">🔊</button>
+        </div>
+        <canvas id="snakeCanvas" width="226" height="226"></canvas>
+        <p style="margin:4px 0; font-size:14px;">Apples: <span id="apples">0</span> / <span id="goal">10</span></p>
+        <button id="skipBtn" disabled onclick="skip()" style="background:#cc0000; font-size:15px;">🐍 SKIP ROUND</button>
+        <div id="event-ticker">Status: Stable</div>
+        <div style="margin-top:auto; padding-top:8px; font-size:11px; color:#555;">
+            Arrow keys / WASD to move
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
