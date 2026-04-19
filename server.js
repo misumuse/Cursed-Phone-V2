@@ -47,7 +47,6 @@ io.on('connection', (socket) => {
         if (isSkip) room.skipCount++;
 
         const pIdx = room.players.findIndex(p => p.id === socket.id);
-        // This logic ensures books rotate correctly every round
         const bOwnerIdx = (pIdx + room.currentRound) % room.players.length;
 
         let finalContent = content;
@@ -59,11 +58,9 @@ io.on('connection', (socket) => {
 
         room.players[bOwnerIdx].book.push({ author: room.players[pIdx].name, content: finalContent, type });
 
-        // Check if everyone is done with the round
         if (room.players.every(p => p.book.length === room.currentRound + 1)) {
             room.currentRound++;
             
-            // If rounds = number of players, the books have returned home
             if (room.currentRound >= room.players.length) {
                 io.to(code).emit('show_results', room.players);
             } else {
@@ -71,8 +68,7 @@ io.on('connection', (socket) => {
                     const nextBookIdx = (i + room.currentRound) % room.players.length;
                     const lastEntry = room.players[nextBookIdx].book[room.currentRound - 1];
                     
-                    let roll = Math.random();
-                    let time = roll < 0.15 ? 3 : (roll > 0.95 ? 300000 : 60);
+                    let time = 60;
                     let appleReq = room.skipCount >= 10 ? 90 : 10 + (room.skipCount * 5);
                     
                     io.to(p.id).emit('next_round', { lastEntry, time, appleReq });
@@ -82,4 +78,5 @@ io.on('connection', (socket) => {
     });
 });
 
-http.listen(3000, () => console.log('🔥 CURSED SERVER ON PORT 3000'));
+const PORT = process.env.PORT || 3000;
+http.listen(PORT, '0.0.0.0', () => console.log(`🔥 CURSED SERVER ON PORT ${PORT}`));
