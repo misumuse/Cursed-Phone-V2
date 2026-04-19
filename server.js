@@ -6,7 +6,6 @@ const io = require('socket.io')(http, {
 });
 const path = require('path');
 
-// Bypass ngrok browser warning
 app.use((req, res, next) => {
     res.setHeader('ngrok-skip-browser-warning', 'true');
     next();
@@ -14,14 +13,14 @@ app.use((req, res, next) => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-let rooms = {}; 
+let rooms = {};
 const CHAOS_WORDS = ["BEEF", "SOGGY", "WIZARD", "GLITCH", "DUST", "CHEESE", "SUSPICIOUS", "MOIST", "CRISP"];
 const EVENTS = ["FLIP", "INVERT", "SHAKE", "RAINBOW", "ZOOM", "GLITCH"];
 
 io.on('connection', (socket) => {
     socket.on('join_room', ({ code, name }) => {
         socket.join(code);
-        if (!rooms[code]) rooms[code] = { players: [], currentRound: 0, skipCount: 0 };
+        if (!rooms[code]) rooms[code] = { players: [], currentRound: 0 };
         rooms[code].players.push({ id: socket.id, name, book: [] });
         io.to(code).emit('update_players', rooms[code].players.map(p => p.name));
     });
@@ -32,27 +31,26 @@ io.on('connection', (socket) => {
         if (room.players.length < 3) {
             return socket.emit('error_msg', "Need at least 3 players to start the curse!");
         }
-        
+
         io.to(code).emit('game_started');
-        
+
         setInterval(() => {
             const event = EVENTS[Math.floor(Math.random() * EVENTS.length)];
             io.to(code).emit('random_event', event);
         }, 25000);
     });
 
-    socket.on('submit_turn', ({ code, content, type, isSkip }) => {
+    socket.on('submit_turn', ({ code, content, type }) => {
         const room = rooms[code];
         if (!room) return;
-        if (isSkip) room.skipCount++;
 
         const pIdx = room.players.findIndex(p => p.id === socket.id);
         const bOwnerIdx = (pIdx + room.currentRound) % room.players.length;
 
         let finalContent = content;
-        if (type === 'text' && !isSkip) {
+        if (type === 'text') {
             let w = content.split(" ");
-            if(w.length > 1) w.splice(Math.floor(Math.random() * w.length), 0, CHAOS_WORDS[Math.floor(Math.random() * CHAOS_WORDS.length)]);
+            if (w.length > 1) w.splice(Math.floor(Math.random() * w.length), 0, CHAOS_WORDS[Math.floor(Math.random() * CHAOS_WORDS.length)]);
             finalContent = w.join(" ").toUpperCase();
         }
 
@@ -60,18 +58,14 @@ io.on('connection', (socket) => {
 
         if (room.players.every(p => p.book.length === room.currentRound + 1)) {
             room.currentRound++;
-            
+
             if (room.currentRound >= room.players.length) {
                 io.to(code).emit('show_results', room.players);
             } else {
                 room.players.forEach((p, i) => {
                     const nextBookIdx = (i + room.currentRound) % room.players.length;
                     const lastEntry = room.players[nextBookIdx].book[room.currentRound - 1];
-                    
-                    let time = 60;
-                    let appleReq = room.skipCount >= 10 ? 90 : 10 + (room.skipCount * 5);
-                    
-                    io.to(p.id).emit('next_round', { lastEntry, time, appleReq });
+                    io.to(p.id).emit('next_round', { lastEntry, time: 60 });
                 });
             }
         }
