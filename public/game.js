@@ -440,13 +440,14 @@ let snake = [{x:11, y:11}], food = {x:5, y:5}, dx=0, dy=0, apples=0;
 let snakeHue = 0;
 
 window.addEventListener("keydown", (e) => {
-    if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","w","a","s","d"].includes(e.key)) {
+    if (document.activeElement.tagName === "INPUT") return;
+    if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)) {
         e.preventDefault();
     }
-    if ((e.key==="ArrowUp"||e.key==="w") && dy===0) { dx=0; dy=-1; }
-    if ((e.key==="ArrowDown"||e.key==="s") && dy===0) { dx=0; dy=1; }
-    if ((e.key==="ArrowLeft"||e.key==="a") && dx===0) { dx=-1; dy=0; }
-    if ((e.key==="ArrowRight"||e.key==="d") && dx===0) { dx=1; dy=0; }
+    if (e.key==="ArrowUp" && dy===0) { dx=0; dy=-1; }
+    if (e.key==="ArrowDown" && dy===0) { dx=0; dy=1; }
+    if (e.key==="ArrowLeft" && dx===0) { dx=-1; dy=0; }
+    if (e.key==="ArrowRight" && dx===0) { dx=1; dy=0; }
 });
 
 function resetSnake() {
