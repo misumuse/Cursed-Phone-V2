@@ -460,12 +460,13 @@
     <!-- SIDEBAR -->
     <div id="sidebar">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h3>🐍 SNAKE TO SKIP</h3>
+            <h3>🐍 SNAKE</h3>
             <button id="soundToggle" onclick="toggleSound()" class="on" title="Toggle sound">🔊</button>
         </div>
         <canvas id="snakeCanvas" width="226" height="226"></canvas>
-        <p style="margin:4px 0; font-size:14px;">Apples: <span id="apples">0</span> / <span id="goal">10</span></p>
-        <button id="skipBtn" disabled onclick="skip()" style="background:#cc0000; font-size:15px;">🐍 SKIP ROUND</button>
+        <p style="margin:4px 0; font-size:14px;">Apples: <span id="apples">0</span></p>
+        
+        
         <div id="event-ticker">Status: Stable</div>
         <div style="margin-top:auto; padding-top:8px; font-size:11px; color:#555;">
             Arrow keys to move
