@@ -1,9 +1,6 @@
-// ============================================================
-//  CURSED PHONE — Improved Client Script
-// ============================================================
 const socket = io({ transports: ['websocket', 'polling'], secure: true, rejectUnauthorized: false, extraHeaders: { 'ngrok-skip-browser-warning': 'true' } });
 let roomCode = "", myName = "", currentMode = "text";
-let timerInterval, appleGoal = 10;
+let timerInterval;
 
 // ---- DRAWING STATE ----
 let brushColor = "#000000";
@@ -44,7 +41,6 @@ function playChord(freqs, duration = 0.2) { freqs.forEach((f, i) => playTone(f, 
 function playJoin()   { playChord([220, 330, 440]); }
 function playStart()  { [200,250,300,400,500,600].forEach((f,i) => playTone(f, "sawtooth", 0.12, 0.2, i*0.06)); }
 function playSubmit() { playChord([440, 554, 659], 0.3); }
-function playSkip()   { playTone(80, "sawtooth", 0.5, 0.5); playTone(60, "sawtooth", 0.3, 0.4, 0.3); }
 function playTimer()  { playTone(880, "square", 0.05, 0.4); }
 function playEat()    { playTone(660, "sine", 0.1, 0.3); playTone(880, "sine", 0.1, 0.3, 0.12); }
 function playDie()    { [400,300,200,100].forEach((f,i) => playTone(f, "sawtooth", 0.15, 0.3, i*0.08)); }
@@ -154,7 +150,6 @@ function buildPalette() {
         };
         pal.appendChild(s);
     });
-    // Eraser at end
     const er = document.createElement("div");
     er.className = "swatch eraser-swatch";
     er.title = "Eraser";
@@ -184,7 +179,7 @@ function setTool(tool) {
     if (tool === "erase") {
         document.querySelectorAll(".swatch").forEach(b => b.classList.remove("active"));
     }
-    document.getElementById("drawCanvas").style.cursor = tool === "fill" ? "cell" : tool === "spray" ? "crosshair" : tool === "erase" ? "cell" : "crosshair";
+    document.getElementById("drawCanvas").style.cursor = tool === "fill" ? "cell" : tool === "erase" ? "cell" : "crosshair";
 }
 
 // ---- CANVAS SETUP ----
@@ -213,20 +208,16 @@ function clearCanvas() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
-// Flood fill
 function floodFill(x, y, fillColorHex) {
     const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imgData.data;
     const targetIdx = (Math.floor(y) * canvas.width + Math.floor(x)) * 4;
     const tr = data[targetIdx], tg = data[targetIdx+1], tb = data[targetIdx+2], ta = data[targetIdx+3];
-
     const hex = fillColorHex.replace("#","");
     const fr = parseInt(hex.slice(0,2),16);
     const fg = parseInt(hex.slice(2,4),16);
     const fb = parseInt(hex.slice(4,6),16);
-
     if (tr===fr && tg===fg && tb===fb) return;
-
     const stack = [[Math.floor(x), Math.floor(y)]];
     while (stack.length) {
         const [cx, cy] = stack.pop();
@@ -241,11 +232,7 @@ function floodFill(x, y, fillColorHex) {
 
 let sprayInterval;
 canvas.addEventListener("mousedown", (e) => {
-    if (currentTool === "fill") {
-        saveUndo();
-        floodFill(e.offsetX, e.offsetY, brushColor);
-        return;
-    }
+    if (currentTool === "fill") { saveUndo(); floodFill(e.offsetX, e.offsetY, brushColor); return; }
     saveUndo();
     drawing = true;
     [lastX, lastY] = [e.offsetX, e.offsetY];
@@ -260,33 +247,23 @@ canvas.addEventListener("mousemove", (e) => {
     lastX = e.offsetX; lastY = e.offsetY;
     if (currentTool === "pen" || currentTool === "erase") {
         ctx.lineWidth = currentTool === "erase" ? brushSize * 3 : brushSize;
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
+        ctx.lineCap = "round"; ctx.lineJoin = "round";
         ctx.strokeStyle = currentTool === "erase" ? "white" : brushColor;
-        ctx.beginPath();
-        ctx.moveTo(lastX, lastY);
-        ctx.lineTo(e.offsetX, e.offsetY);
-        ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke();
         [lastX, lastY] = [e.offsetX, e.offsetY];
         if (Math.random() < 0.1) playDraw();
     }
 });
 
-window.addEventListener("mouseup", () => {
-    drawing = false;
-    clearInterval(sprayInterval);
-});
+window.addEventListener("mouseup", () => { drawing = false; clearInterval(sprayInterval); });
 
-// Touch support
 canvas.addEventListener("touchstart", (e) => {
     e.preventDefault();
     const r = canvas.getBoundingClientRect();
     const t = e.touches[0];
     const ex = t.clientX - r.left, ey = t.clientY - r.top;
     if (currentTool === "fill") { saveUndo(); floodFill(ex, ey, brushColor); return; }
-    saveUndo();
-    drawing = true;
-    [lastX, lastY] = [ex, ey];
+    saveUndo(); drawing = true; [lastX, lastY] = [ex, ey];
 }, { passive: false });
 
 canvas.addEventListener("touchmove", (e) => {
@@ -310,10 +287,8 @@ function sprayAt(x, y) {
     for (let i = 0; i < 20; i++) {
         const a = Math.random() * Math.PI * 2;
         const r = Math.random() * radius;
-        const px = x + Math.cos(a) * r;
-        const py = y + Math.sin(a) * r;
         ctx.beginPath();
-        ctx.arc(px, py, 1, 0, Math.PI * 2);
+        ctx.arc(x + Math.cos(a)*r, y + Math.sin(a)*r, 1, 0, Math.PI*2);
         ctx.fill();
     }
 }
@@ -329,8 +304,7 @@ socket.on("random_event", (type) => {
     document.getElementById("event-ticker").innerText = "⚡ EVENT: " + type;
     playEvent();
     showToast("⚡ CHAOS: " + type);
-    const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
-    spawnParticles(cx, cy, "#ff00ff", 40);
+    spawnParticles(window.innerWidth/2, window.innerHeight/2, "#ff00ff", 40);
     setTimeout(() => {
         body.classList.remove("event-flip","event-invert","event-shake","event-rainbow","event-zoom","event-glitch");
         document.getElementById("event-ticker").innerText = "Status: Stable";
@@ -367,8 +341,6 @@ socket.on("game_started", () => {
 });
 
 socket.on("next_round", (data) => {
-    appleGoal = data.appleReq;
-    document.getElementById("goal").innerText = appleGoal;
     document.getElementById("waiting-screen").classList.add("hidden");
     document.getElementById("game-screen").classList.remove("hidden");
     const mode = data.lastEntry.type === "text" ? "image" : "text";
@@ -390,10 +362,7 @@ function setupRound(title, lastEntry, mode, time) {
     timerInterval = setInterval(() => {
         timeLeft--;
         timerEl.innerText = timeLeft;
-        if (timeLeft <= 10) {
-            timerEl.classList.add("danger");
-            playTimer();
-        }
+        if (timeLeft <= 10) { timerEl.classList.add("danger"); playTimer(); }
         if (timeLeft <= 0) { clearInterval(timerInterval); submit(); }
     }, 1000);
 
@@ -424,7 +393,7 @@ function submit() {
     const content = currentMode === "text"
         ? document.getElementById("textInput").value
         : canvas.toDataURL("image/jpeg", 0.7);
-    socket.emit("submit_turn", { code: roomCode, content, type: currentMode, isSkip: false });
+    socket.emit("submit_turn", { code: roomCode, content, type: currentMode });
     document.getElementById("game-screen").classList.add("hidden");
     document.getElementById("waiting-screen").classList.remove("hidden");
     playSubmit();
@@ -432,18 +401,16 @@ function submit() {
     showToast("SUBMITTED!");
 }
 
-// ---- SNAKE ----
+// ---- SNAKE (just for fun!) ----
 const sCanvas = document.getElementById("snakeCanvas");
 const sCtx = sCanvas.getContext("2d");
-const GRID = 22, CELL = 10; // 22x22 grid, 10px each = 220px + 1px border each side
+const GRID = 22, CELL = 10;
 let snake = [{x:11, y:11}], food = {x:5, y:5}, dx=0, dy=0, apples=0;
 let snakeHue = 0;
 
 window.addEventListener("keydown", (e) => {
     if (document.activeElement.tagName === "INPUT") return;
-    if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)) {
-        e.preventDefault();
-    }
+    if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)) e.preventDefault();
     if (e.key==="ArrowUp" && dy===0) { dx=0; dy=-1; }
     if (e.key==="ArrowDown" && dy===0) { dx=0; dy=1; }
     if (e.key==="ArrowLeft" && dx===0) { dx=-1; dy=0; }
@@ -453,7 +420,6 @@ window.addEventListener("keydown", (e) => {
 function resetSnake() {
     snake = [{x:11, y:11}]; dx=0; dy=0; apples=0;
     document.getElementById("apples").innerText = 0;
-    document.getElementById("skipBtn").disabled = true;
     playDie();
 }
 
@@ -467,15 +433,11 @@ function spawnFood() {
 }
 
 function runSnake() {
-    if (dx===0 && dy===0) {
-        drawSnakeBoard();
-        return;
-    }
+    if (dx===0 && dy===0) { drawSnakeBoard(); return; }
     const head = {x: snake[0].x + dx, y: snake[0].y + dy};
     if (head.x<0||head.x>=GRID||head.y<0||head.y>=GRID) return resetSnake();
     if (snake.some(p => head.x===p.x && head.y===p.y)) return resetSnake();
 
-    // Shy apple (0.5% dodge)
     const dist = Math.abs(head.x-food.x) + Math.abs(head.y-food.y);
     if (dist<=2 && Math.random()<0.005) spawnFood();
 
@@ -484,10 +446,8 @@ function runSnake() {
         apples++;
         document.getElementById("apples").innerText = apples;
         spawnFood();
-        if (apples >= appleGoal) document.getElementById("skipBtn").disabled = false;
         playEat();
         snakeHue = (snakeHue + 30) % 360;
-        // particle burst at food location
         const rect = sCanvas.getBoundingClientRect();
         spawnParticles(rect.left + food.x*CELL + CELL/2, rect.top + food.y*CELL + CELL/2, "#ff3300", 10);
     } else {
@@ -499,12 +459,10 @@ function runSnake() {
 function drawSnakeBoard() {
     sCtx.fillStyle = "#050505";
     sCtx.fillRect(0, 0, sCanvas.width, sCanvas.height);
-    // Grid dots
     sCtx.fillStyle = "rgba(255,255,255,0.05)";
     for (let x=0; x<GRID; x++) for (let y=0; y<GRID; y++) {
         sCtx.fillRect(x*CELL+4, y*CELL+4, 2, 2);
     }
-    // Snake (rainbow gradient)
     snake.forEach((p, i) => {
         const hue = (snakeHue + i * 8) % 360;
         sCtx.fillStyle = `hsl(${hue}, 100%, 55%)`;
@@ -512,7 +470,6 @@ function drawSnakeBoard() {
         sCtx.roundRect(p.x*CELL+1, p.y*CELL+1, CELL-2, CELL-2, 2);
         sCtx.fill();
     });
-    // Food (pulsing)
     const pulse = Math.sin(Date.now() / 200) * 0.2 + 0.8;
     sCtx.fillStyle = `rgba(255,50,50,${pulse})`;
     sCtx.beginPath();
@@ -521,15 +478,6 @@ function drawSnakeBoard() {
 }
 
 setInterval(runSnake, 100);
-
-function skip() {
-    socket.emit("submit_turn", { code: roomCode, content: "SNAKE SKIP", type: currentMode, isSkip: true });
-    resetSnake();
-    document.getElementById("game-screen").classList.add("hidden");
-    document.getElementById("waiting-screen").classList.remove("hidden");
-    playSkip();
-    showToast("ROUND SKIPPED!");
-}
 
 // ---- RESULTS ----
 socket.on("show_results", (players) => {
